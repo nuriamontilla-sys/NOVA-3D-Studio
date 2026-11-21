@@ -1,0 +1,77 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVA 3D Studio</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #211c18;
+  color: #f5ead9;
+}
+header {
+  padding: 30px 20px;
+  text-align: center;
+  border-bottom: 2px solid #c5a36b;
+}
+h1 { color: #e3bf83; }
+main { padding: 20px; max-width: 700px; margin: auto; }
+section {
+  background: #342b24;
+  padding: 20px;
+  margin: 15px 0;
+  border-radius: 14px;
+}
+button, input {
+  padding: 12px;
+  margin: 5px 0;
+  border-radius: 8px;
+  font-size: 16px;
+}
+button { background: #d4ad72; border: none; }
+input { width: 90%; }
+</style>
+</head>
+<body>
+<header>
+<h1>NOVA 3D</h1>
+<p>STUDIO</p>
+<p>Tu taller de diseño e impresión 3D</p>
+</header>
+<main>
+<section>
+<h2>Diseñador 3D</h2>
+<p>Introduce las medidas de tu primera pieza.</p>
+<input id="ancho" type="number" placeholder="Ancho en mm">
+<input id="fondo" type="number" placeholder="Fondo en mm">
+<input id="alto" type="number" placeholder="Alto en mm">
+<button onclick="guardar()">Guardar medidas</button>
+<p id="resultado"></p>
+</section>
+<section>
+<h2>Mis filamentos</h2>
+<p>Próximamente: inventario Bambu Lab.</p>
+</section>
+<section>
+<h2>Mis proyectos</h2>
+<p>Primer proyecto: organizador NOVA 3D.</p>
+</section>
+</main>
+<script>
+function guardar() {
+ const a = document.getElementById("ancho").value;
+ const f = document.getElementById("fondo").value;
+ const h = document.getElementById("alto").value;
+ if (+a <= 0 || +f <= 0 || +h <= 0) {
+   alert("Introduce tres medidas positivas");
+   return;
+ }
+ document.getElementById("resultado").textContent =
+   "Pieza: " + a + " × " + f + " × " + h + " mm";
+}
+</script>
+</body>
+</html>
