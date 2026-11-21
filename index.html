@@ -134,7 +134,8 @@ function resize(){
  const el=$('visor');
  const w=el.clientWidth,h=el.clientHeight;
  renderer.setSize(w,h,false);
- camera.aspect=w/h;
+ camera.setViewOffset(w,h,0,0,w,h);
+camera.clearViewOffset();
  camera.updateProjectionMatrix();
  renderer.render(scene,camera);
 }
