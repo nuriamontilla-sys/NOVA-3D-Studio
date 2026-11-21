@@ -1,145 +1,274 @@
 
+
 <!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NOVA 3D Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOVA 3D Studio V4</title>
 <style>
-:root{color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:#211c18;color:#f5ead9;font:16px system-ui,-apple-system,sans-serif}
-header{text-align:center;padding:25px 15px;border-bottom:2px solid #c5a36b}
-h1{margin:0;color:#e3bf83;font-size:32px}
-header p{margin:7px}
-main{max-width:800px;margin:auto;padding:16px}
-section{background:#342b24;border-radius:14px;padding:20px;margin-bottom:15px}
-h2{margin-top:0}
-label{display:block;margin:12px 0 5px}
-input{width:100%;padding:12px;border:1px solid #947b5c;border-radius:8px;background:#fff;color:#222;font-size:17px}
-button{padding:12px 15px;background:#d4ad72;border:0;border-radius:8px;color:#211c18;font-weight:700;font-size:16px;margin:12px 8px 0 0}
-button:disabled{opacity:.5}
-#visor{height:340px;background:#191714;border-radius:12px;overflow:hidden;touch-action:none;position:relative}
-#visor canvas{display:block;width:100%;height:100%}
-small,.muted{color:#d7c6b0}
-#estado{min-height:1.5em}
-#visor .hint{position:absolute;bottom:10px;left:12px;pointer-events:none;color:#e6d9c8;font-size:12px}
-#error{color:#ffb4a2}
+body{margin:0;background:#201b17;color:#f6ead9;font:15px system-ui,sans-serif}
+header{text-align:center;border-bottom:2px solid #c8a36a;padding:18px}
+h1{color:#e2bd7e;margin:0}
+header p{margin:4px}
+main{max-width:980px;margin:auto;padding:12px}
+section{background:#342b24;border-radius:14px;padding:15px;margin:12px 0}
+h2{margin:0 0 12px;font-size:20px}
+.bar{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}
+button,select,input{font:inherit;border-radius:8px;padding:10px;border:1px solid #a88a62}
+button{background:#d4ad72;color:#231b13;font-weight:650}
+button.active{background:#fff;color:#222}
+input,select{background:#fff;color:#222}
+input[type=color]{padding:2px;width:60px;height:42px}
+input[type=number]{width:95px}
+label{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+#view{height:440px;background:#161412;border-radius:10px;position:relative;overflow:hidden;touch-action:none}
+#view canvas{display:block;width:100%;height:100%;touch-action:none}
+.hint{position:absolute;bottom:8px;left:10px;color:#e6d7c2;font-size:12px;pointer-events:none}
+#photo{max-width:100%;max-height:240px;display:none;border-radius:8px}
+#status{color:#e6c78c;min-height:20px}
+small{color:#cbbba5}
+#objects{max-width:100%}
+@media(max-width:600px){#view{height:360px}button{padding:9px}}
 </style>
 </head>
 <body>
 <header>
 <h1>NOVA 3D</h1>
-<p>STUDIO</p>
-<p>Tu taller de diseño e impresión 3D</p>
+<p>STUDIO · V4</p>
+<p>Diseña con tus dedos</p>
 </header>
 <main>
 <section>
-<h2>Diseñador 3D · V2</h2>
-<p>Prototipo: prisma rectangular con dimensiones exactas en milímetros.</p>
-<label for="ancho">Ancho (mm)</label>
-<input id="ancho" type="number" min="0.1" max="1000" step="0.1" value="85">
-<label for="fondo">Fondo (mm)</label>
-<input id="fondo" type="number" min="0.1" max="1000" step="0.1" value="210">
-<label for="alto">Alto (mm)</label>
-<input id="alto" type="number" min="0.1" max="1000" step="0.1" value="10">
-<label for="color">Color de visualización</label>
-<input id="color" type="color" value="#8c5b39" style="height:50px;padding:4px">
-<button id="actualizar">Actualizar modelo</button>
-<button id="descargar">Descargar STL</button>
-<p id="estado" aria-live="polite"></p>
-<p id="error" role="alert"></p>
+<h2>Herramientas táctiles</h2>
+<div class="bar" id="modes">
+<button data-mode="orbit" class="active">Girar vista</button>
+<button data-mode="draw">Dibujar relieve</button>
+<button data-mode="add">Poner forma</button>
+<button data-mode="move">Mover pieza</button>
+<button data-mode="paint">Pintar pieza</button>
+<button data-mode="erase">Borrar pieza</button>
+</div>
+<div class="bar">
+<label>Forma
+<select id="shape">
+<option value="sphere">Esfera</option>
+<option value="box">Cubo</option>
+<option value="cone">Cono / oreja</option>
+<option value="cylinder">Cilindro</option>
+<option value="torus">Anillo</option>
+</select></label>
+<label>Tamaño mm
+<input id="size" type="number" min="1" max="150" value="18">
+</label>
+<label>Color
+<input id="color" type="color" value="#a56c48">
+</label>
+</div>
+<div class="bar">
+<button id="center">Centrar vista</button>
+<button id="undo">Deshacer</button>
+<button id="clear">Nuevo proyecto</button>
+</div>
+<p><small>Girar: arrastra con un dedo. Dibujar: arrastra sobre una pieza. Poner forma: toca una superficie. Pellizca para ampliar.</small></p>
 </section>
 <section>
 <h2>Vista 3D</h2>
-<div id="visor">
-<span class="hint">Arrastra para girar · Pellizca para acercar</span>
+<div id="view">
+<span class="hint">Diseño táctil · unidades en mm</span>
 </div>
-<p class="muted">La vista muestra un bloque de prueba, no todavía el organizador decorativo.</p>
+<p id="status">Preparando visor…</p>
 </section>
 <section>
-<h2>Mis filamentos</h2>
-<p>Inventario Bambu Lab: siguiente actualización.</p>
+<h2>Crear base con medidas exactas</h2>
+<div class="bar">
+<label>Ancho <input id="w" type="number" min="1" value="85"></label>
+<label>Fondo <input id="d" type="number" min="1" value="85"></label>
+<label>Alto <input id="h" type="number" min="1" value="40"></label>
+<button id="base">Crear bloque</button>
+</div>
 </section>
 <section>
-<h2>Mis proyectos</h2>
-<p>Organizador NOVA 3D: pendiente de importar su geometría y validar el encaje.</p>
+<h2>Fotografía de referencia</h2>
+<input id="image" type="file" accept="image/*" capture="environment">
+<div class="bar"><button id="hidephoto">Ocultar fotografía</button></div>
+<img id="photo" alt="Fotografía de referencia">
+<p><small>La fotografía sirve como referencia. No se convierte automáticamente en un modelo 3D.</small></p>
+</section>
+<section>
+<h2>Mis piezas</h2>
+<select id="objects"></select>
+<div class="bar">
+<button id="delete">Eliminar seleccionada</button>
+<button id="duplicate">Duplicar seleccionada</button>
+</div>
+</section>
+<section>
+<h2>Guardar y exportar</h2>
+<div class="bar">
+<button id="save">Guardar en iPad</button>
+<button id="load">Recuperar proyecto</button>
+<button id="json">Exportar proyecto JSON</button>
+<button id="stl">Descargar STL</button>
+</div>
+<p><small>STL no conserva los colores. Las piezas superpuestas no se fusionan automáticamente; revisa el modelo en Bambu Studio antes de imprimir.</small></p>
 </section>
 </main>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import * as T from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
 const $=id=>document.getElementById(id);
-const scene=new THREE.Scene();
-scene.background=new THREE.Color('#191714');
-const camera=new THREE.PerspectiveCamera(45,1,.1,5000);
-camera.position.set(0,150,350);
-camera.lookAt(0,0,0);
-const renderer=new THREE.WebGLRenderer({antialias:true});
+const view=$('view');
+const scene=new T.Scene();
+scene.background=new T.Color('#161412');
+const camera=new T.PerspectiveCamera(45,1,.1,10000);
+const renderer=new T.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-$('visor').prepend(renderer.domElement);
+view.prepend(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xffffff,0x594632,2));
-const light=new THREE.DirectionalLight(0xffffff,2);
-light.position.set(2,4,5);
-scene.add(light);
+scene.add(new T.HemisphereLight(0xffffff,0x65503a,2));
+const sun=new T.DirectionalLight(0xffffff,2);
+sun.position.set(100,180,130);
+scene.add(sun);
 
-let mesh=null,dims=null,angleX=.3,angleY=.5;
-const pointerMap=new Map();
-let lastPinch=null;
+const root=new T.Group();
+scene.add(root);
+const ray=new T.Raycaster();
+const mouse=new T.Vector2();
 
-function dimensions(){
- const v=['ancho','fondo','alto'].map(k=>Number($(k).value));
- if(v.some(x=>!Number.isFinite(x)||x<=0||x>1000))
-  throw Error('Introduce medidas mayores que 0 y de hasta 1000 mm.');
- return v;
+let mode='orbit',selected=null,history=[],pieces=[];
+let orbit={az:.55,el:.45,dist:300,target:new T.Vector3()};
+let drag=null,lastDraw=null;
+const say=s=>$('status').textContent=s;
+
+function geometry(kind,size,extra){
+ if(kind==='box')
+  return new T.BoxGeometry(extra?.w||size,extra?.h||size,extra?.d||size);
+ if(kind==='cone')return new T.ConeGeometry(size*.43,size,32);
+ if(kind==='cylinder')return new T.CylinderGeometry(size*.45,size*.45,size,32);
+ if(kind==='torus')return new T.TorusGeometry(size*.43,size*.14,12,48);
+ return new T.SphereGeometry(size*.5,24,16);
 }
 
-function update(){
- try{
-  dims=dimensions();
-  if(mesh){
-   scene.remove(mesh);
-   mesh.geometry.dispose();
-   mesh.material.dispose();
-  }
-  const [w,d,h]=dims;
-  mesh=new THREE.Mesh(
-   new THREE.BoxGeometry(w,h,d),
-   new THREE.MeshStandardMaterial({
-    color:$('color').value,metalness:.12,roughness:.55
-   })
-  );
-  scene.add(mesh);
-  const max=Math.max(...dims);
-  camera.position.set(0,max*.6,max*2.5);
-  camera.lookAt(0,0,0);
-  camera.near=Math.max(.01,max/10000);
-  camera.far=max*20;
-  camera.zoom=1;
-  camera.updateProjectionMatrix();
-  applyRotation();
-  $('estado').textContent=`Modelo actualizado: ${w} × ${d} × ${h} mm (ancho × fondo × alto).`;
-  $('error').textContent='';
- }catch(e){
-  $('error').textContent=e.message;
+function add(kind='sphere',size=18,pos=[0,0,0],color=$('color').value,extra=null,record=true){
+ if(record)snapshot();
+ const m=new T.Mesh(
+  geometry(kind,size,extra),
+  new T.MeshStandardMaterial({color,roughness:.65,side:T.DoubleSide})
+ );
+ m.position.set(...pos);
+ m.userData={kind,size,extra};
+ root.add(m);
+ pieces.push(m);
+ select(m);
+ return m;
+}
+
+function select(m){
+ selected=m;
+ refreshList();
+}
+
+function refreshList(){
+ const s=$('objects');
+ s.replaceChildren();
+ pieces.forEach((m,i)=>{
+  const o=document.createElement('option');
+  o.value=i;
+  o.textContent=`${i+1}. ${m.userData.kind}`;
+  s.append(o);
+ });
+ s.value=selected?pieces.indexOf(selected):'';
+}
+
+function serial(){
+ return pieces.map(m=>({
+  kind:m.userData.kind,
+  size:m.userData.size,
+  extra:m.userData.extra,
+  pos:m.position.toArray(),
+  rot:m.rotation.toArray().slice(0,3),
+  color:'#'+m.material.color.getHexString()
+ }));
+}
+
+function restore(data){
+ pieces.forEach(m=>{
+  root.remove(m);
+  m.geometry.dispose();
+  m.material.dispose();
+ });
+ pieces=[];
+ selected=null;
+ for(const p of data){
+  const m=add(p.kind,p.size,p.pos,p.color,p.extra,false);
+  m.rotation.set(...(p.rot||[0,0,0]));
  }
+ refreshList();
 }
 
-function applyRotation(){
- if(mesh)mesh.rotation.set(angleX,angleY,0);
+function snapshot(){
+ history.push(serial());
+ if(history.length>30)history.shift();
+}
+
+function del(){
+ if(!selected)return;
+ snapshot();
+ const m=selected;
+ root.remove(m);
+ pieces=pieces.filter(x=>x!==m);
+ m.geometry.dispose();
+ m.material.dispose();
+ select(pieces.at(-1)||null);
+}
+
+function setMode(v){
+ mode=v;
+ document.querySelectorAll('[data-mode]').forEach(b=>
+  b.classList.toggle('active',b.dataset.mode===v)
+ );
+ say('Herramienta: '+v);
+}
+
+document.querySelectorAll('[data-mode]').forEach(b=>
+ b.onclick=()=>setMode(b.dataset.mode)
+);
+
+function fit(){
+ const box=new T.Box3().setFromObject(root);
+ if(box.isEmpty()){
+  orbit.target.set(0,0,0);
+  orbit.dist=300;
+ }else{
+  box.getCenter(orbit.target);
+  const sz=box.getSize(new T.Vector3());
+  orbit.dist=Math.max(80,sz.length()*1.6);
+ }
+ orbit.az=.55;
+ orbit.el=.45;
+ updateCamera();
+}
+
+function updateCamera(){
+ const {az,el,dist,target}=orbit;
+ camera.position.set(
+  target.x+dist*Math.sin(az)*Math.cos(el),
+  target.y+dist*Math.sin(el),
+  target.z+dist*Math.cos(az)*Math.cos(el)
+ );
+ camera.lookAt(target);
+ camera.updateProjectionMatrix();
 }
 
 function resize(){
- const el=$('visor');
- const w=el.clientWidth,h=el.clientHeight;
+ const w=view.clientWidth,h=view.clientHeight;
  renderer.setSize(w,h,false);
- camera.setViewOffset(w,h,0,0,w,h);
-camera.clearViewOffset();
+ camera.aspect=w/h;
  camera.updateProjectionMatrix();
- renderer.render(scene,camera);
 }
-new ResizeObserver(resize).observe($('visor'));
+new ResizeObserver(resize).observe(view);
 
 function render(){
  renderer.render(scene,camera);
@@ -147,95 +276,276 @@ function render(){
 }
 render();
 
+function hits(e){
+ const r=renderer.domElement.getBoundingClientRect();
+ mouse.set(
+  (e.clientX-r.left)/r.width*2-1,
+  -(e.clientY-r.top)/r.height*2+1
+ );
+ ray.setFromCamera(mouse,camera);
+ return ray.intersectObjects(pieces,false);
+}
+
+function pointOnPlane(e,y){
+ const r=renderer.domElement.getBoundingClientRect();
+ mouse.set(
+  (e.clientX-r.left)/r.width*2-1,
+  -(e.clientY-r.top)/r.height*2+1
+ );
+ ray.setFromCamera(mouse,camera);
+ const out=new T.Vector3();
+ return ray.ray.intersectPlane(
+  new T.Plane(new T.Vector3(0,1,0),-y),out
+ )?out:null;
+}
+
+function act(e){
+ const hit=hits(e)[0];
+ if(mode==='paint'&&hit){
+  snapshot();
+  hit.object.material.color.set($('color').value);
+  select(hit.object);
+ }else if(mode==='erase'&&hit){
+  select(hit.object);
+  del();
+ }else if(mode==='add'){
+  const s=Number($('size').value)||18;
+  if(!hit){
+   say('Toca una pieza existente para añadir la forma');
+   return;
+  }
+  const normal=hit.face.normal.clone()
+   .transformDirection(hit.object.matrixWorld).normalize();
+  const pos=hit.point.clone().addScaledVector(normal,s*.25);
+  add($('shape').value,s,pos.toArray());
+  say('Forma añadida');
+ }else if(mode==='draw'){
+  draw(e,true);
+ }else if(mode==='move'&&hit){
+  select(hit.object);
+  snapshot();
+  const origin=pointOnPlane(e,hit.object.position.y);
+  drag={
+   type:'move',
+   y:hit.object.position.y,
+   offset:hit.object.position.clone().sub(origin||hit.object.position)
+  };
+ }
+}
+
+function draw(e,start=false){
+ const hit=hits(e)[0];
+ if(!hit)return;
+ const s=Math.max(1,Math.min(50,Number($('size').value)||10));
+ if(!start&&lastDraw&&lastDraw.distanceTo(hit.point)<s*.25)return;
+ if(start)snapshot();
+ const n=hit.face.normal.clone()
+  .transformDirection(hit.object.matrixWorld).normalize();
+ const pos=hit.point.clone().addScaledVector(n,s*.16);
+ add('sphere',s*.45,pos.toArray(),$('color').value,null,false);
+ lastDraw=hit.point.clone();
+}
+
 const canvas=renderer.domElement;
+const pointers=new Map();
+let pinch=0;
+
 canvas.addEventListener('pointerdown',e=>{
  canvas.setPointerCapture(e.pointerId);
- pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
-});
-canvas.addEventListener('pointermove',e=>{
- if(!pointerMap.has(e.pointerId))return;
- const prev=pointerMap.get(e.pointerId);
- pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
- if(pointerMap.size===1){
-  angleY+=(e.clientX-prev.x)*.009;
-  angleX=Math.max(-1.5,Math.min(1.5,angleX+(e.clientY-prev.y)*.009));
-  applyRotation();
- }else if(pointerMap.size===2){
-  const pts=[...pointerMap.values()];
-  const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
-  if(lastPinch)camera.zoom=Math.max(.5,Math.min(5,camera.zoom*dist/lastPinch));
-  lastPinch=dist;
-  camera.updateProjectionMatrix();
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pointers.size===1){
+  drag={type:'orbit'};
+  if(mode!=='orbit')act(e);
  }
 });
+
+canvas.addEventListener('pointermove',e=>{
+ if(!pointers.has(e.pointerId))return;
+ const old=pointers.get(e.pointerId);
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+
+ if(pointers.size===2){
+  const a=[...pointers.values()];
+  const distance=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+  if(pinch)orbit.dist=Math.max(15,Math.min(4000,orbit.dist*pinch/distance));
+  pinch=distance;
+  updateCamera();
+  return;
+ }
+
+ if(mode==='orbit'){
+  orbit.az-=(e.clientX-old.x)*.009;
+  orbit.el=Math.max(-1.45,Math.min(1.45,
+   orbit.el+(e.clientY-old.y)*.009));
+  updateCamera();
+ }else if(mode==='draw'){
+  draw(e);
+ }else if(mode==='move'&&drag?.type==='move'){
+  const p=pointOnPlane(e,drag.y);
+  if(p&&selected)selected.position.copy(p.add(drag.offset));
+ }
+});
+
 function end(e){
- pointerMap.delete(e.pointerId);
- lastPinch=null;
+ pointers.delete(e.pointerId);
+ pinch=0;
+ drag=null;
+ lastDraw=null;
 }
 canvas.addEventListener('pointerup',end);
 canvas.addEventListener('pointercancel',end);
+
 canvas.addEventListener('wheel',e=>{
  e.preventDefault();
- camera.zoom=Math.max(.5,Math.min(5,camera.zoom*(e.deltaY>0?.92:1.08)));
- camera.updateProjectionMatrix();
+ orbit.dist=Math.max(15,Math.min(4000,
+  orbit.dist*(e.deltaY>0?1.1:.9)));
+ updateCamera();
 },{passive:false});
 
-function stl(){
- const [w,d,h]=dimensions();
- const x=w/2,y=h/2,z=d/2;
- const p=[
-  [-x,-y,-z],[x,-y,-z],[x,y,-z],[-x,y,-z],
-  [-x,-y,z],[x,-y,z],[x,y,z],[-x,y,z]
- ];
- const faces=[
-  [0,2,1],[0,3,2],[4,5,6],[4,6,7],
-  [0,1,5],[0,5,4],[3,7,6],[3,6,2],
-  [0,4,7],[0,7,3],[1,2,6],[1,6,5]
- ];
- const lines=['solid NOVA_3D'];
- for(const face of faces){
-  const a=p[face[0]],b=p[face[1]],c=p[face[2]];
-  const u=b.map((v,i)=>v-a[i]);
-  const v=c.map((n,i)=>n-a[i]);
-  const n=[
-   u[1]*v[2]-u[2]*v[1],
-   u[2]*v[0]-u[0]*v[2],
-   u[0]*v[1]-u[1]*v[0]
-  ];
-  const l=Math.hypot(...n);
-  lines.push(
-   `facet normal ${n.map(q=>(q/l).toFixed(6)).join(' ')}`,
-   'outer loop'
-  );
-  for(const q of [a,b,c])lines.push(`vertex ${q.join(' ')}`);
-  lines.push('endloop','endfacet');
+$('center').onclick=fit;
+
+$('undo').onclick=()=>{
+ if(history.length){
+  restore(history.pop());
+  fit();
+  say('Último cambio deshecho');
  }
- lines.push('endsolid NOVA_3D');
- const blob=new Blob([lines.join('\n')],{type:'model/stl'});
+};
+
+$('clear').onclick=()=>{
+ if(confirm('¿Crear un proyecto vacío?')){
+  snapshot();
+  restore([]);
+  fit();
+ }
+};
+
+$('base').onclick=()=>{
+ const w=Number($('w').value);
+ const d=Number($('d').value);
+ const h=Number($('h').value);
+ if([w,d,h].some(x=>!Number.isFinite(x)||x<=0||x>1000)){
+  say('Introduce tres medidas válidas');
+  return;
+ }
+ add('box',w,[0,0,0],$('color').value,{w,d,h});
+ fit();
+};
+
+$('objects').onchange=e=>
+ select(pieces[Number(e.target.value)]||null);
+
+$('delete').onclick=del;
+
+$('duplicate').onclick=()=>{
+ if(!selected)return;
+ const p=serial()[pieces.indexOf(selected)];
+ p.pos[0]+=p.size*.7;
+ add(p.kind,p.size,p.pos,p.color,p.extra);
+};
+
+function download(name,blob){
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');
  a.href=url;
- a.download='NOVA_bloque_'+w+'x'+d+'x'+h+'mm.stl';
- document.body.appendChild(a);
+ a.download=name;
+ document.body.append(a);
  a.click();
  a.remove();
- setTimeout(()=>URL.revokeObjectURL(url),3000);
- $('estado').textContent='Archivo STL generado. Comprueba la descarga en Archivos del iPad.';
+ setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
-$('actualizar').addEventListener('click',update);
-$('descargar').addEventListener('click',()=>{
+$('save').onclick=()=>{
  try{
-  stl();
-  $('error').textContent='';
+  localStorage.setItem('nova-v4',JSON.stringify(serial()));
+  say('Proyecto guardado en este navegador');
  }catch(e){
-  $('error').textContent=e.message;
+  say('No se pudo guardar: '+e.message);
  }
-});
-$('color').addEventListener('input',()=>{
- if(mesh)mesh.material.color.set($('color').value);
-});
-update();
+};
+
+$('load').onclick=()=>{
+ try{
+  const data=localStorage.getItem('nova-v4');
+  if(!data){
+   say('No hay proyecto guardado');
+   return;
+  }
+  snapshot();
+  restore(JSON.parse(data));
+  fit();
+  say('Proyecto recuperado');
+ }catch(e){
+  say('Error al recuperar proyecto');
+ }
+};
+
+$('json').onclick=()=>download(
+ 'NOVA-proyecto.json',
+ new Blob(
+  [JSON.stringify({version:4,pieces:serial()},null,2)],
+  {type:'application/json'}
+ )
+);
+
+$('image').onchange=e=>{
+ const f=e.target.files?.[0];
+ if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{
+  $('photo').src=r.result;
+  $('photo').style.display='block';
+  say('Fotografía cargada como referencia');
+ };
+ r.readAsDataURL(f);
+};
+
+$('hidephoto').onclick=()=>{
+ $('photo').style.display='none';
+};
+
+$('stl').onclick=()=>{
+ if(!pieces.length){
+  say('Primero crea una pieza');
+  return;
+ }
+ const out=['solid NOVA'];
+ root.updateMatrixWorld(true);
+
+ for(const mesh of pieces){
+  const geo=mesh.geometry.index
+   ?mesh.geometry.toNonIndexed()
+   :mesh.geometry;
+  const a=geo.getAttribute('position');
+
+  for(let i=0;i<a.count;i+=3){
+   const v=[0,1,2].map(j=>
+    new T.Vector3().fromBufferAttribute(a,i+j)
+     .applyMatrix4(mesh.matrixWorld)
+   );
+   const n=v[1].clone().sub(v[0])
+    .cross(v[2].clone().sub(v[0])).normalize();
+   out.push(
+    `facet normal ${n.x} ${n.y} ${n.z}`,
+    'outer loop'
+   );
+   v.forEach(p=>out.push(`vertex ${p.x} ${p.y} ${p.z}`));
+   out.push('endloop','endfacet');
+  }
+  if(geo!==mesh.geometry)geo.dispose();
+ }
+ out.push('endsolid NOVA');
+ download(
+  'NOVA-diseno.stl',
+  new Blob([out.join('\n')],{type:'model/stl'})
+ );
+ say('STL exportado. Revísalo en Bambu Studio antes de imprimir');
+};
+
+add('box',85,[0,0,0],'#a56c48',
+ {w:85,d:85,h:40},false);
+fit();
+say('NOVA V4 lista. Selecciona una herramienta.');
 </script>
 </body>
 </html>
