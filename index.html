@@ -1,38 +1,30 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NOVA 3D Studio</title>
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #211c18;
-  color: #f5ead9;
-}
-header {
-  padding: 30px 20px;
-  text-align: center;
-  border-bottom: 2px solid #c5a36b;
-}
-h1 { color: #e3bf83; }
-main { padding: 20px; max-width: 700px; margin: auto; }
-section {
-  background: #342b24;
-  padding: 20px;
-  margin: 15px 0;
-  border-radius: 14px;
-}
-button, input {
-  padding: 12px;
-  margin: 5px 0;
-  border-radius: 8px;
-  font-size: 16px;
-}
-button { background: #d4ad72; border: none; }
-input { width: 90%; }
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#211c18;color:#f5ead9;font:16px system-ui,-apple-system,sans-serif}
+header{text-align:center;padding:25px 15px;border-bottom:2px solid #c5a36b}
+h1{margin:0;color:#e3bf83;font-size:32px}
+header p{margin:7px}
+main{max-width:800px;margin:auto;padding:16px}
+section{background:#342b24;border-radius:14px;padding:20px;margin-bottom:15px}
+h2{margin-top:0}
+label{display:block;margin:12px 0 5px}
+input{width:100%;padding:12px;border:1px solid #947b5c;border-radius:8px;background:#fff;color:#222;font-size:17px}
+button{padding:12px 15px;background:#d4ad72;border:0;border-radius:8px;color:#211c18;font-weight:700;font-size:16px;margin:12px 8px 0 0}
+button:disabled{opacity:.5}
+#visor{height:340px;background:#191714;border-radius:12px;overflow:hidden;touch-action:none;position:relative}
+#visor canvas{display:block;width:100%;height:100%}
+small,.muted{color:#d7c6b0}
+#estado{min-height:1.5em}
+#visor .hint{position:absolute;bottom:10px;left:12px;pointer-events:none;color:#e6d9c8;font-size:12px}
+#error{color:#ffb4a2}
 </style>
 </head>
 <body>
@@ -43,35 +35,204 @@ input { width: 90%; }
 </header>
 <main>
 <section>
-<h2>Diseñador 3D</h2>
-<p>Introduce las medidas de tu primera pieza.</p>
-<input id="ancho" type="number" placeholder="Ancho en mm">
-<input id="fondo" type="number" placeholder="Fondo en mm">
-<input id="alto" type="number" placeholder="Alto en mm">
-<button onclick="guardar()">Guardar medidas</button>
-<p id="resultado"></p>
+<h2>Diseñador 3D · V2</h2>
+<p>Prototipo: prisma rectangular con dimensiones exactas en milímetros.</p>
+<label for="ancho">Ancho (mm)</label>
+<input id="ancho" type="number" min="0.1" max="1000" step="0.1" value="85">
+<label for="fondo">Fondo (mm)</label>
+<input id="fondo" type="number" min="0.1" max="1000" step="0.1" value="210">
+<label for="alto">Alto (mm)</label>
+<input id="alto" type="number" min="0.1" max="1000" step="0.1" value="10">
+<label for="color">Color de visualización</label>
+<input id="color" type="color" value="#8c5b39" style="height:50px;padding:4px">
+<button id="actualizar">Actualizar modelo</button>
+<button id="descargar">Descargar STL</button>
+<p id="estado" aria-live="polite"></p>
+<p id="error" role="alert"></p>
+</section>
+<section>
+<h2>Vista 3D</h2>
+<div id="visor">
+<span class="hint">Arrastra para girar · Pellizca para acercar</span>
+</div>
+<p class="muted">La vista muestra un bloque de prueba, no todavía el organizador decorativo.</p>
 </section>
 <section>
 <h2>Mis filamentos</h2>
-<p>Próximamente: inventario Bambu Lab.</p>
+<p>Inventario Bambu Lab: siguiente actualización.</p>
 </section>
 <section>
 <h2>Mis proyectos</h2>
-<p>Primer proyecto: organizador NOVA 3D.</p>
+<p>Organizador NOVA 3D: pendiente de importar su geometría y validar el encaje.</p>
 </section>
 </main>
-<script>
-function guardar() {
- const a = document.getElementById("ancho").value;
- const f = document.getElementById("fondo").value;
- const h = document.getElementById("alto").value;
- if (+a <= 0 || +f <= 0 || +h <= 0) {
-   alert("Introduce tres medidas positivas");
-   return;
- }
- document.getElementById("resultado").textContent =
-   "Pieza: " + a + " × " + f + " × " + h + " mm";
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#191714');
+const camera=new THREE.PerspectiveCamera(45,1,.1,5000);
+camera.position.set(180,140,240);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+$('visor').prepend(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x594632,2));
+const light=new THREE.DirectionalLight(0xffffff,2);
+light.position.set(2,4,5);
+scene.add(light);
+
+let mesh=null,dims=null,angleX=.3,angleY=.5;
+const pointerMap=new Map();
+let lastPinch=null;
+
+function dimensions(){
+ const v=['ancho','fondo','alto'].map(k=>Number($(k).value));
+ if(v.some(x=>!Number.isFinite(x)||x<=0||x>1000))
+  throw Error('Introduce medidas mayores que 0 y de hasta 1000 mm.');
+ return v;
 }
+
+function update(){
+ try{
+  dims=dimensions();
+  if(mesh){
+   scene.remove(mesh);
+   mesh.geometry.dispose();
+   mesh.material.dispose();
+  }
+  const [w,d,h]=dims;
+  mesh=new THREE.Mesh(
+   new THREE.BoxGeometry(w,h,d),
+   new THREE.MeshStandardMaterial({
+    color:$('color').value,metalness:.12,roughness:.55
+   })
+  );
+  scene.add(mesh);
+  const max=Math.max(...dims);
+  camera.position.set(max*.95,max*.75,max*1.35);
+  camera.near=Math.max(.01,max/10000);
+  camera.far=max*20;
+  camera.zoom=1;
+  camera.updateProjectionMatrix();
+  applyRotation();
+  $('estado').textContent=`Modelo actualizado: ${w} × ${d} × ${h} mm (ancho × fondo × alto).`;
+  $('error').textContent='';
+ }catch(e){
+  $('error').textContent=e.message;
+ }
+}
+
+function applyRotation(){
+ if(mesh)mesh.rotation.set(angleX,angleY,0);
+}
+
+function resize(){
+ const el=$('visor');
+ const w=el.clientWidth,h=el.clientHeight;
+ renderer.setSize(w,h,false);
+ camera.aspect=w/h;
+ camera.updateProjectionMatrix();
+ renderer.render(scene,camera);
+}
+new ResizeObserver(resize).observe($('visor'));
+
+function render(){
+ renderer.render(scene,camera);
+ requestAnimationFrame(render);
+}
+render();
+
+const canvas=renderer.domElement;
+canvas.addEventListener('pointerdown',e=>{
+ canvas.setPointerCapture(e.pointerId);
+ pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!pointerMap.has(e.pointerId))return;
+ const prev=pointerMap.get(e.pointerId);
+ pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pointerMap.size===1){
+  angleY+=(e.clientX-prev.x)*.009;
+  angleX=Math.max(-1.5,Math.min(1.5,angleX+(e.clientY-prev.y)*.009));
+  applyRotation();
+ }else if(pointerMap.size===2){
+  const pts=[...pointerMap.values()];
+  const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+  if(lastPinch)camera.zoom=Math.max(.5,Math.min(5,camera.zoom*dist/lastPinch));
+  lastPinch=dist;
+  camera.updateProjectionMatrix();
+ }
+});
+function end(e){
+ pointerMap.delete(e.pointerId);
+ lastPinch=null;
+}
+canvas.addEventListener('pointerup',end);
+canvas.addEventListener('pointercancel',end);
+canvas.addEventListener('wheel',e=>{
+ e.preventDefault();
+ camera.zoom=Math.max(.5,Math.min(5,camera.zoom*(e.deltaY>0?.92:1.08)));
+ camera.updateProjectionMatrix();
+},{passive:false});
+
+function stl(){
+ const [w,d,h]=dimensions();
+ const x=w/2,y=h/2,z=d/2;
+ const p=[
+  [-x,-y,-z],[x,-y,-z],[x,y,-z],[-x,y,-z],
+  [-x,-y,z],[x,-y,z],[x,y,z],[-x,y,z]
+ ];
+ const faces=[
+  [0,2,1],[0,3,2],[4,5,6],[4,6,7],
+  [0,1,5],[0,5,4],[3,7,6],[3,6,2],
+  [0,4,7],[0,7,3],[1,2,6],[1,6,5]
+ ];
+ const lines=['solid NOVA_3D'];
+ for(const face of faces){
+  const a=p[face[0]],b=p[face[1]],c=p[face[2]];
+  const u=b.map((v,i)=>v-a[i]);
+  const v=c.map((n,i)=>n-a[i]);
+  const n=[
+   u[1]*v[2]-u[2]*v[1],
+   u[2]*v[0]-u[0]*v[2],
+   u[0]*v[1]-u[1]*v[0]
+  ];
+  const l=Math.hypot(...n);
+  lines.push(
+   `facet normal ${n.map(q=>(q/l).toFixed(6)).join(' ')}`,
+   'outer loop'
+  );
+  for(const q of [a,b,c])lines.push(`vertex ${q.join(' ')}`);
+  lines.push('endloop','endfacet');
+ }
+ lines.push('endsolid NOVA_3D');
+ const blob=new Blob([lines.join('\n')],{type:'model/stl'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;
+ a.download='NOVA_bloque_'+w+'x'+d+'x'+h+'mm.stl';
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),3000);
+ $('estado').textContent='Archivo STL generado. Comprueba la descarga en Archivos del iPad.';
+}
+
+$('actualizar').addEventListener('click',update);
+$('descargar').addEventListener('click',()=>{
+ try{
+  stl();
+  $('error').textContent='';
+ }catch(e){
+  $('error').textContent=e.message;
+ }
+});
+$('color').addEventListener('input',()=>{
+ if(mesh)mesh.material.color.set($('color').value);
+});
+update();
 </script>
 </body>
 </html>
